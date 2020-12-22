@@ -92,6 +92,7 @@
   "export.raw_data": "raw OSM data",
   "export.raw_interpreter": "raw data directly from <a id=\"export-overpass-api\" href=\"\" target=\"_blank\" class=\"external\">Overpass API</a>",
   "export.save_geoJSON_gist": "save GeoJSON to <a id=\"export-geoJSON-gist\" href=\"\" class=\"external\">gist</a>",
+  "export.load_iD": "Open all data results in <a id=\"export-overpass-api\" href=\"\" target=\"_blank\" class=\"external\">iD</a> browser tabs",
 
   "export.section.query": "Query",
   "export.format_text": "<abbr title=\"For direct use with the Overpass API, has expanded shortcuts and doesn't include additional overpass turbo features such as MapCSS.\">standalone query</abbr>",

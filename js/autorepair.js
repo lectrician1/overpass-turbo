@@ -1,7 +1,7 @@
 // query autorepair module
 import $ from "jquery";
 
-import {Base64} from "./misc";
+import { Base64 } from "./misc";
 
 export default function autorepair(q, lng) {
   var repair = {};
@@ -63,26 +63,26 @@ export default function autorepair(q, lng) {
         q = q.replace(
           prints[i],
           "\n" +
-            ws +
-            "<!-- added by auto repair -->\n" +
-            ws +
-            "<union" +
-            add1 +
-            ">\n" +
-            ws +
-            "  <item" +
-            add2 +
-            "/>\n" +
-            ws +
-            "  <recurse" +
-            add3 +
-            ' type="down"/>\n' +
-            ws +
-            "</union>\n" +
-            ws +
-            "<!-- end of auto repair --><autorepair>" +
-            i +
-            "</autorepair>"
+          ws +
+          "<!-- added by auto repair -->\n" +
+          ws +
+          "<union" +
+          add1 +
+          ">\n" +
+          ws +
+          "  <item" +
+          add2 +
+          "/>\n" +
+          ws +
+          "  <recurse" +
+          add3 +
+          ' type="down"/>\n' +
+          ws +
+          "</union>\n" +
+          ws +
+          "<!-- end of auto repair --><autorepair>" +
+          i +
+          "</autorepair>"
         );
       }
       for (var i = 0; i < prints.length; i++)
@@ -99,13 +99,13 @@ export default function autorepair(q, lng) {
         q = q.replace(
           outs[i],
           ws +
-            "/*added by auto repair*/" +
-            ws +
-            add +
-            ws +
-            "/*end of auto repair*/<autorepair>" +
-            i +
-            "</autorepair>"
+          "/*added by auto repair*/" +
+          ws +
+          add +
+          ws +
+          "/*end of auto repair*/<autorepair>" +
+          i +
+          "</autorepair>"
         );
       }
       for (var i = 0; i < outs.length; i++)
@@ -114,7 +114,7 @@ export default function autorepair(q, lng) {
     return true;
   };
 
-  repair.editors = function () {
+  repair.editors = function (outType, outMode) {
     if (lng == "xml") {
       // 1. fix <osm-script output=*
       var src = q.match(/<osm-script([^>]*)>/);
@@ -122,8 +122,8 @@ export default function autorepair(q, lng) {
         var output = $("osm-script", $.parseXML(src[0] + "</osm-script>")).attr(
           "output"
         );
-        if (output && output != "xml") {
-          var new_src = src[0].replace(output, "xml");
+        if (output && output != outType) {
+          var new_src = src[0].replace(output, outType);
           q = q.replace(src[0], new_src + "<!-- fixed by auto repair -->");
         }
       }
@@ -136,8 +136,8 @@ export default function autorepair(q, lng) {
         var add = "",
           new_print,
           repaired = false;
-        if (mode !== "meta") {
-          print.attr("mode", "meta");
+        if (mode !== outMode) {
+          print.attr("mode", outMode);
           repaired = true;
         }
         if (geometry && geometry !== "skeleton") {
@@ -167,7 +167,7 @@ export default function autorepair(q, lng) {
       // 1. fix [out:*]
       var out = q.match(/\[\s*out\s*:\s*([^\]\s]+)\s*\]\s*;?/);
       ///^\s*\[\s*out\s*:\s*([^\]\s]+)/);
-      if (out && out[1] != "xml")
+      if (out && out[1] != outType)
         q = q.replace(
           /(\[\s*out\s*:\s*)([^\]\s]+)(\s*\]\s*;?)/,
           "$1xml$3/*fixed by auto repair*/"
@@ -187,7 +187,7 @@ export default function autorepair(q, lng) {
         ) {
           var new_out_statement = out_statement
             .replace(/\s(body|skel|ids|tags|meta)/g, "")
-            .replace(/^out/, "out meta");
+            .replace(/^out/, "out " + outMode);
           new_print = new_print.replace(out_statement, new_out_statement);
           out_statement = new_out_statement;
         }
@@ -234,8 +234,10 @@ autorepair.detect.editors = function (q, lng) {
       var xml = $.parseXML("<x>" + q + "</x>");
       var out = $("osm-script", xml).attr("output");
       if (out !== undefined && out !== "xml") err.output = true;
+      if (out !== undefined && out !== "json") err.output = true;
       $("print", xml).each(function (i, p) {
         if ($(p).attr("mode") !== "meta") err.meta = true;
+        if ($(p).attr("mode") !== "skel") err.skel = true;
       });
       $("print", xml).each(function (i, p) {
         if (
@@ -245,17 +247,20 @@ autorepair.detect.editors = function (q, lng) {
         )
           err.geometry = true;
       });
-    } catch (e) {} // ignore xml syntax errors ?!
+    } catch (e) { } // ignore xml syntax errors ?!
   } else {
     // ignore comments
     q = q.replace(/\/\*[\s\S]*?\*\//g, "");
     q = q.replace(/\/\/[^\n]*/g, "");
     var out = q.match(/\[\s*out\s*:\s*([^\]\s]+)\s*\]/);
     if (out && out[1] != "xml") err.output = true;
+    if (out && out[1] != "json") err.output = true;
     var prints = q.match(/out([^:;]*);/g);
     $(prints).each(function (i, p) {
       if (p.match(/\s(body|skel|ids|tags)/) || !p.match(/meta/))
         err.meta = true;
+      if (p.match(/\s(body|skel|ids|tags)/) || !p.match(/skel/))
+        err.skel = true;
     });
     $(prints).each(function (i, p) {
       if (p.match(/\s(center|bb|geom)/)) err.geometry = true;
